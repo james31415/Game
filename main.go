@@ -3,6 +3,7 @@ package main
 import (
     "fmt" // for log
     "github.com/dradtke/go-allegro/allegro"
+    "github.com/dradtke/go-allegro/allegro/image"
     "github.com/dradtke/go-allegro/allegro/audio"
     "github.com/dradtke/go-allegro/allegro/acodec"
     //"github.com/yuin/gopher-lua"
@@ -11,18 +12,60 @@ import (
 
 const (
     // DEBUG
-    LOGGING = true
+    LOGGING = false
     LOOPING = true
     // JOYSTICK
     STICK_THRESHOLD = 0.5
     // SOUND
     PIANO_WAV = "dat/snd/piano.wav"
     // DISPLAY
+    TEST_ICON = "dat/img/icecat.png"
     WINX = 800
     WINY = 600
     // MAIN
-    FPS  = 30
+    FPS  = 60
 )
+
+type sprite struct {
+    Bitmap         *allegro.Bitmap
+    DrawFlags       allegro.DrawFlags
+    BitmapFilename  string
+    OffsetX         float32
+    OffsetY         float32
+    ScaleX          float32
+    ScaleY          float32
+    Height          float32
+    Width           float32
+    Angle           float32
+    X               float32
+    Y               float32
+}
+
+func (s *sprite) Draw() { s.Bitmap.DrawScaledRotated(s.OffsetX,s.OffsetY,s.X,s.Y,s.ScaleX,s.ScaleY,s.Angle,s.DrawFlags) }
+//func (s *sprite) Draw() { s.Bitmap.Draw(s.X+s.OffsetX,s.Y+s.OffsetY,s.DrawFlags) }
+
+func (s *sprite) Load() (err error) {
+    if bitmap, err := allegro.LoadBitmap(s.BitmapFilename); err != nil {
+        return err
+    } else {
+        s.Bitmap  = bitmap
+        s.Width   = float32(bitmap.Width())
+        s.Height  = float32(bitmap.Height())
+        s.OffsetY = s.Height/2
+        s.OffsetX = s.Width/2
+        s.ScaleX  = 1.0
+        s.ScaleY  = 1.0
+    }
+    return nil
+}
+
+func (s *sprite) Unload() {
+    s.Bitmap.Destroy()
+    s.OffsetX = 0
+    s.OffsetY = 0
+    s.Height  = 0
+    s.Width   = 0
+}
 
 func configureJoysticks() (joyState *allegro.JoystickState) {
     log("CONFIGURING JOYSTICKS")
@@ -80,16 +123,16 @@ func main() {
         // Manually set DisplayFlags for now
         // planning on setting with a config
 
-           flags |= allegro.WINDOWED
+        // flags |= allegro.WINDOWED
         // flags |= allegro.FULLSCREEN
         // flags |= allegro.OPENGL
         // flags |= allegro.RESIZABLE
         // flags |= allegro.FRAMELESS
         // flags |= allegro.NOFRAME
-           flags |= allegro.GENERATE_EXPOSE_EVENTS
+        // flags |= allegro.GENERATE_EXPOSE_EVENTS
         // flags |= allegro.OPENGL_3_0
         // flags |= allegro.OPENGL_FORWARD_COMPATIBLE
-        // flags |= allegro.FULLSCREEN_WINDOW
+           flags |= allegro.FULLSCREEN_WINDOW
 
         if flags == 0 {            log(" = DEFAULT"                  ) } else {
             if flags & 0x001 > 0 { log(" = WINDOWED"                 ) }
@@ -102,6 +145,16 @@ func main() {
             if flags & 0x080 > 0 { log(" = OPENGL_3_0"               ) }
             if flags & 0x100 > 0 { log(" = OPENGL_FORWARD_COMPATIBLE") }
             if flags & 0x200 > 0 { log(" = FULLSCREEN_WINDOW"        ) }
+        }
+
+        /* ///////////////////
+        ** Install Image Addon
+        */ ///////////////////
+        log("INSTALL IMAGE")
+        if err = image.Install(); err != nil {
+            panic(err)
+        } else {
+            defer logFunc("UNINSTALL IMAGE", image.Uninstall)
         }
 
         /* ///////////////////////////
@@ -204,6 +257,16 @@ func main() {
         if err != nil { panic(err) }
         piano.Play()
 
+
+        /* ///////////
+        ** Sprite Test
+        */ ///////////
+        var icon sprite
+        icon.BitmapFilename = TEST_ICON
+        if err = icon.Load(); err != nil { log(err) }
+        icon.X = float32(display.Width()/2)
+        icon.Y = float32(display.Height()/2)
+
         /* ///////// // /////////////////////
         ** Main Loop // Damn Huge Switch Loop
         */ ///////// // /////////////////////
@@ -299,16 +362,25 @@ func main() {
                     if Button_LS    > 0 { log(" = JOY_LS"   ) }
                     if Button_RS    > 0 { log(" = JOY_RS"   ) }
 
-                    c :=      -Axis_RY * 63 + 63
-                    r := byte( Axis_LX * c + c) & 0xFF
-                    g := byte( Axis_RX * c + c) & 0xFF
-                    b := byte(-Axis_LY * c + c) & 0xFF
+                    icon.X      += Axis_LX * 8
+                    icon.Y      += Axis_LY * 8
+                    icon.ScaleX += Axis_RX
+                    icon.ScaleY -= Axis_RY
+                    icon.Angle  -= Axis_TL / 8
+                    icon.Angle  += Axis_TR / 8
+                    icon.Draw()
 
                     // Cycle background color
-                    allegro.ClearToColor(allegro.MapRGB(r,g,b))
-                    allegro.FlipDisplay()
+                    // c :=      -Axis_RY * 63 + 63
+                    // r := byte( Axis_LX * c + c) & 0xFF
+                    // g := byte( Axis_RX * c + c) & 0xFF
+                    // b := byte(-Axis_LY * c + c) & 0xFF
+                    // allegro.ClearToColor(allegro.MapRGB(r,g,b))
 
                 } // Joystick State
+
+                // Display State
+                allegro.FlipDisplay()
 
             } // Timer Events
 
