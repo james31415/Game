@@ -67,8 +67,8 @@ func main() {
             joyState   *allegro.JoystickState
             keyState    allegro.KeyboardState
             timer      *allegro.Timer
-            running    bool = LOOPING
-            err        error
+            running     bool = LOOPING
+            err         error
         )
 
         /* /////////////////
@@ -233,7 +233,7 @@ func main() {
             case allegro.MouseWarpedEvent:           log("MouseWarpedEvent"          );
 
             // Timer Events
-            case allegro.TimerEvent:              // log("TimerEvent:", timer.Count())
+            case allegro.TimerEvent: {            // log("TimerEvent:", timer.Count())
 
                 // Keyboard State
                 keyState.Get()
@@ -247,44 +247,70 @@ func main() {
                 // Joystick State
                 if joyState != nil {
                     joyState.Get()
-                    if joyState.Stick[0].Axis[1] < -STICK_THRESHOLD { log(" = L_STICK_UP"   ) }
-                    if joyState.Stick[0].Axis[1] >  STICK_THRESHOLD { log(" = L_STICK_DOWN" ) }
-                    if joyState.Stick[0].Axis[0] < -STICK_THRESHOLD { log(" = L_STICK_LEFT" ) }
-                    if joyState.Stick[0].Axis[0] >  STICK_THRESHOLD { log(" = L_STICK_RIGHT") }
 
-                    if joyState.Stick[2].Axis[0] < -STICK_THRESHOLD { log(" = R_STICK_UP"   ) }
-                    if joyState.Stick[2].Axis[0] >  STICK_THRESHOLD { log(" = R_STICK_DOWN" ) }
-                    if joyState.Stick[1].Axis[1] < -STICK_THRESHOLD { log(" = R_STICK_LEFT" ) }
-                    if joyState.Stick[1].Axis[1] >  STICK_THRESHOLD { log(" = R_STICK_RIGHT") }
+                    Axis_LX := joyState.Stick[0].Axis[0]
+                    Axis_LY := joyState.Stick[0].Axis[1]
+                    Axis_TL := joyState.Stick[1].Axis[0]
+                    Axis_RX := joyState.Stick[1].Axis[1]
+                    Axis_RY := joyState.Stick[2].Axis[0]
+                    Axis_TR := joyState.Stick[2].Axis[1]
+                    Axis_DX := joyState.Stick[3].Axis[0]
+                    Axis_DY := joyState.Stick[3].Axis[1]
 
-                    if joyState.Stick[3].Axis[1] < -STICK_THRESHOLD { log(" = DIR_PAD_UP"   ) }
-                    if joyState.Stick[3].Axis[1] >  STICK_THRESHOLD { log(" = DIR_PAD_DOWN" ) }
-                    if joyState.Stick[3].Axis[0] < -STICK_THRESHOLD { log(" = DIR_PAD_LEFT" ) }
-                    if joyState.Stick[3].Axis[0] >  STICK_THRESHOLD { log(" = DIR_PAD_RIGHT") }
+                    Button_A     := joyState.Button[0x0]
+                    Button_B     := joyState.Button[0x1]
+                    Button_X     := joyState.Button[0x2]
+                    Button_Y     := joyState.Button[0x3]
+                    Button_LB    := joyState.Button[0x4]
+                    Button_RB    := joyState.Button[0x5]
+                    Button_BACK  := joyState.Button[0x6]
+                    Button_START := joyState.Button[0x7]
+                    Button_XBOX  := joyState.Button[0x8]
+                    Button_LS    := joyState.Button[0x9]
+                    Button_RS    := joyState.Button[0xA]
 
-                    if joyState.Stick[1].Axis[0] >  STICK_THRESHOLD { log(" = TRIGGER_LEFT" ) }
-                    if joyState.Stick[2].Axis[1] >  STICK_THRESHOLD { log(" = TRIGGER_RIGHT") }
+                    if Axis_LY < -STICK_THRESHOLD { log(" = L_STICK_UP"   ) }
+                    if Axis_LY >  STICK_THRESHOLD { log(" = L_STICK_DOWN" ) }
+                    if Axis_LX < -STICK_THRESHOLD { log(" = L_STICK_LEFT" ) }
+                    if Axis_LX >  STICK_THRESHOLD { log(" = L_STICK_RIGHT") }
 
-                    if joyState.Button[0x0] > 0 { log(" = JOY_A"    ) }
-                    if joyState.Button[0x1] > 0 { log(" = JOY_B"    ) }
-                    if joyState.Button[0x2] > 0 { log(" = JOY_X"    ) }
-                    if joyState.Button[0x3] > 0 { log(" = JOY_Y"    ) }
-                    if joyState.Button[0x4] > 0 { log(" = JOY_LB"   ) }
-                    if joyState.Button[0x5] > 0 { log(" = JOY_RB"   ) }
-                    if joyState.Button[0x6] > 0 { log(" = JOY_BACK" ) }
-                    if joyState.Button[0x7] > 0 { log(" = JOY_START") }
-                    if joyState.Button[0x8] > 0 { log(" = JOY_XBOX" ) }
-                    if joyState.Button[0x9] > 0 { log(" = JOY_LS"   ) }
-                    if joyState.Button[0xA] > 0 { log(" = JOY_RS"   ) }
-                }
+                    if Axis_RY < -STICK_THRESHOLD { log(" = R_STICK_UP"   ) }
+                    if Axis_RY >  STICK_THRESHOLD { log(" = R_STICK_DOWN" ) }
+                    if Axis_RX < -STICK_THRESHOLD { log(" = R_STICK_LEFT" ) }
+                    if Axis_RX >  STICK_THRESHOLD { log(" = R_STICK_RIGHT") }
 
-            {
-                // Cycle background color for testing
-                func(color byte){
-                    allegro.ClearToColor(allegro.MapRGB(1*color&0xFF,2*color&0xFF,3*color&0xFF))
+                    if Axis_DY < -STICK_THRESHOLD { log(" = DIR_PAD_UP"   ) }
+                    if Axis_DY >  STICK_THRESHOLD { log(" = DIR_PAD_DOWN" ) }
+                    if Axis_DX < -STICK_THRESHOLD { log(" = DIR_PAD_LEFT" ) }
+                    if Axis_DX >  STICK_THRESHOLD { log(" = DIR_PAD_RIGHT") }
+
+                    if Axis_TL >  STICK_THRESHOLD { log(" = TRIGGER_LEFT" ) }
+                    if Axis_TR >  STICK_THRESHOLD { log(" = TRIGGER_RIGHT") }
+
+                    if Button_A     > 0 { log(" = JOY_A"    ) }
+                    if Button_B     > 0 { log(" = JOY_B"    ) }
+                    if Button_X     > 0 { log(" = JOY_X"    ) }
+                    if Button_Y     > 0 { log(" = JOY_Y"    ) }
+                    if Button_LB    > 0 { log(" = JOY_LB"   ) }
+                    if Button_RB    > 0 { log(" = JOY_RB"   ) }
+                    if Button_BACK  > 0 { log(" = JOY_BACK" ) }
+                    if Button_START > 0 { log(" = JOY_START") }
+                    if Button_XBOX  > 0 { log(" = JOY_XBOX" ) }
+                    if Button_LS    > 0 { log(" = JOY_LS"   ) }
+                    if Button_RS    > 0 { log(" = JOY_RS"   ) }
+
+                    c :=      -Axis_RY * 63 + 63
+                    r := byte( Axis_LX * c + c) & 0xFF
+                    g := byte( Axis_RX * c + c) & 0xFF
+                    b := byte(-Axis_LY * c + c) & 0xFF
+
+                    // Cycle background color
+                    allegro.ClearToColor(allegro.MapRGB(r,g,b))
                     allegro.FlipDisplay()
-                }(byte(timer.Count()))
-            }
+
+                } // Joystick State
+
+            } // Timer Events
 
             default:
             }
