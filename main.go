@@ -10,7 +10,7 @@ import (
 )
 
 const (
-    LOGGING = false
+    LOGGING = true
     LOOPING = true
     // SOUND
     PIANO_WAV = "dat/snd/piano.wav"
@@ -21,60 +21,20 @@ const (
     FPS  = 30
 )
 
-// dump Joystick information, if present
-func checkJoysticks() {
+func configureJoysticks() (joyState *allegro.JoystickState) {
     log("CONFIGURING JOYSTICKS")
-    if allegro.ReconfigureJoysticks() {
-        log(" = PASSED")
-    } else {
-        log(" = FAILED")
-        return
-    }
-    // TODO // Too Deep
+    if allegro.ReconfigureJoysticks() { log(" = RECONFIGURED") }
     if joys := allegro.NumJoysticks(); joys > 0 {
-        log(" = JOYS:", joys)
         for joy := 0; joy < joys; joy++ {
             if joystick, err := allegro.GetJoystick(joy); err != nil {
                 log(err)
             } else {
-                log(" = JOYSTICK:", joy)
-                log(" = NAME:", joystick.Name())
-                if sticks := joystick.NumSticks(); sticks > 0 {
-                    log(" = STICKS:", sticks)
-                    for stick := 0; stick < sticks; stick++ {
-                        if stickName, err := joystick.StickName(stick); err != nil {
-                            log(err)
-                        } else {
-                            log(" = STICK:", stick)
-                            log(" = NAME:", stickName)
-                            if axes := joystick.NumAxes(stick); axes > 0 {
-                                log(" = AXES:", axes)
-                                for axis := 0; axis < axes; axis++ {
-                                    if axisName, err := joystick.AxisName(stick, axis); err != nil {
-                                        log(err)
-                                    } else {
-                                        log(" = AXIS:", axis)
-                                        log(" = NAME:", axisName)
-                                    }
-                                }
-                            }
-                            if nbutt := joystick.NumButtons(); nbutt > 0 {
-                                log(" = NBUTT:", nbutt)
-                                for butt := 0; butt < nbutt; butt++ {
-                                    if buttName, err := joystick.ButtonName(stick); err != nil {
-                                        log(err)
-                                    } else {
-                                        log(" = BUTT:", butt)
-                                        log(" = NAME:", buttName)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                log(" = JOYSTICK:", joy, "=", joystick.Name())
+                joyState = joystick.State()
             }
         }
     }
+    return
 }
 
 // temporary, until sprites are implemented and can load their own assets
@@ -101,7 +61,7 @@ func main() {
             display    *allegro.Display
             event       allegro.Event
             eventQueue *allegro.EventQueue
-            joyState    allegro.JoystickState
+            joyState   *allegro.JoystickState
             keyState    allegro.KeyboardState
             timer      *allegro.Timer
             running    bool = LOOPING
@@ -189,7 +149,7 @@ func main() {
         } else {
             defer logFunc("UNINSTALL JOYSTICK", allegro.UninstallJoystick)
             eventQueue.RegisterEventSource(allegro.JoystickEventSource())
-            checkJoysticks()
+            joyState = configureJoysticks()
         }
         
         /* /////////////////
@@ -260,20 +220,39 @@ func main() {
 
             // Joystick Events
             case allegro.JoystickAxisEvent:          log("JoystickAxisEvent"         ); joyState.Get()
+                log("LEFT_X",   joyState.Stick[0].Axis[0],
+                    "LEFT_Y",   joyState.Stick[0].Axis[1],
+                    "LEFT_T",   joyState.Stick[1].Axis[0],
+                    "RIGHT_X",  joyState.Stick[1].Axis[1],
+                    "RIGHT_Y",  joyState.Stick[2].Axis[0],
+                    "RIGHT_T",  joyState.Stick[2].Axis[1],
+                    "PAD_X",    joyState.Stick[3].Axis[0],
+                    "PAD_Y",    joyState.Stick[3].Axis[1],
+                )
             case allegro.JoystickButtonDownEvent:    log("JoystickButtonDownEvent"   ); joyState.Get()
-            case allegro.JoystickButtonUpEvent:      log("JoystickButtonUpEvent"     ); joyState.Get()
-            case allegro.JoystickConfigurationEvent: log("JoystickConfigurationEvent"); checkJoysticks()
+                if joyState.Button[0x0] > 0 { log(" = JOY_A"    ) }
+                if joyState.Button[0x1] > 0 { log(" = JOY_B"    ) }
+                if joyState.Button[0x2] > 0 { log(" = JOY_X"    ) }
+                if joyState.Button[0x3] > 0 { log(" = JOY_Y"    ) }
+                if joyState.Button[0x4] > 0 { log(" = JOY_LB"   ) }
+                if joyState.Button[0x5] > 0 { log(" = JOY_RB"   ) }
+                if joyState.Button[0x6] > 0 { log(" = JOY_BACK" ) }
+                if joyState.Button[0x7] > 0 { log(" = JOY_START") }
+                if joyState.Button[0x8] > 0 { log(" = JOY_XBOX" ) }
+                if joyState.Button[0x9] > 0 { log(" = JOY_LS"   ) }
+                if joyState.Button[0xA] > 0 { log(" = JOY_RS"   ) }
+            case allegro.JoystickButtonUpEvent:      log("JoystickButtonUpEvent"     ); joyState.Get(); log(joyState.Button)
+            case allegro.JoystickConfigurationEvent: log("JoystickConfigurationEvent"); joyState = configureJoysticks()
 
             // Keyboard Events
             case allegro.KeyCharEvent:               log("KeyCharEvent"              ); keyState.Get()
-                switch {
-                case keyState.IsDown(allegro.KEY_ESCAPE): quit()
-                case keyState.IsDown(allegro.KEY_Q     ): quit()
-                case keyState.IsDown(allegro.KEY_UP    ): log(" = UP"   );
-                case keyState.IsDown(allegro.KEY_DOWN  ): log(" = DOWN" );
-                case keyState.IsDown(allegro.KEY_LEFT  ): log(" = LEFT" );
-                case keyState.IsDown(allegro.KEY_RIGHT ): log(" = RIGHT");
-                }
+                if keyState.IsDown(allegro.KEY_ESCAPE) { quit() }
+                if keyState.IsDown(allegro.KEY_Q     ) { quit() }
+                if keyState.IsDown(allegro.KEY_UP    ) { log(" = UP"   ) }
+                if keyState.IsDown(allegro.KEY_DOWN  ) { log(" = DOWN" ) }
+                if keyState.IsDown(allegro.KEY_LEFT  ) { log(" = LEFT" ) }
+                if keyState.IsDown(allegro.KEY_RIGHT ) { log(" = RIGHT") }
+
             case allegro.KeyDownEvent:               log("KeyDownEvent"              ); allegro.FlipDisplay(); allegro.FlipDisplay()
             case allegro.KeyUpEvent:                 log("KeyUpEvent"                ); // Flip-flop background color for testing
 
@@ -286,7 +265,7 @@ func main() {
             case allegro.MouseWarpedEvent:           log("MouseWarpedEvent"          );
 
             // Timer Events
-            case allegro.TimerEvent:                 log("TimerEvent:", timer.Count())
+            case allegro.TimerEvent:              // log("TimerEvent:", timer.Count())
                 // Cycle background color for testing
                 func(color byte){
                     allegro.ClearToColor(allegro.MapRGB(1*color&0xFF,2*color&0xFF,3*color&0xFF))
