@@ -1,8 +1,6 @@
 package main
 
 import (
-    "fmt" // for log
-    "io/ioutil"
     "github.com/dradtke/go-allegro/allegro"
     "github.com/dradtke/go-allegro/allegro/image"
     "github.com/dradtke/go-allegro/allegro/audio"
@@ -10,24 +8,7 @@ import (
     //"github.com/yuin/gopher-lua"
 )
 
-type DebugLevel int
-
 const (
-    GENERAL DebugLevel = 1 << iota
-    SPRITES
-    BITMAPS
-    SOUNDS
-)
-
-const ( // DEBUG
-    LOGLVL  = SPRITES
-    LOGGING = true
-    LOOPING = true
-)
-
-const (
-    // JOYSTICK
-    STICK_THRESHOLD = 0.5
     // SOUND
     SAMPLEMAX = 8
     // DISPLAY
@@ -35,171 +16,81 @@ const (
     WINY = 600
     // MAIN
     FPS  = 60
-    // SPRITES
-    SPRITEDATA = "dat/sprites/"
-    BACKGROUND = "background"
-    PLAYER     = "player"
-    // SOUND
-    SPAWN = "spawn.wav"
 )
 
-type sprite struct {
-    Name       string
-    Folder     string
-    Sound      map[string]*audio.Sample
-    Bitmap    *allegro.Bitmap
-    DrawFlags  allegro.DrawFlags
-    OffsetX    float32
-    OffsetY    float32
-    ScaleX     float32
-    ScaleY     float32
-    Height     float32
-    Width      float32
-    Angle      float32
-    X          float32
-    Y          float32
-    Draw       func()
-    Spawn      func()
-}
+/* /////////////////////////////////////////////////////////////////////////////
+** Under Construction //                                                     //
+** ///////////////////////////////////////////////////////////////////////////
+**
+** Kludged together and tested displays, events, sounds, keyboards, joysticks,
+** and sprites.  Now that the library portions have largely been implemented,
+** I've started breaking up the code into more manageable chunks.  Will need
+** to start discussing implementation strategies as far as how the engine
+** handles it's own data structures.  Once the mechanics have been ironed
+** out, we'll need to start adding in external configuration and script
+** support.
+*/
 
-func (s *sprite) DrawNormal() {
-    dx := s.X-s.OffsetX
-    dy := s.Y-s.OffsetY
-    df := s.DrawFlags
-    s.Bitmap.Draw(dx,dy,df)
-}
+// Keyboard
+type keyboardMap map[allegro.KeyCode]func()
 
-func (s *sprite) DrawScaled() { // TODO / BROKEN
-    sx := s.X-s.OffsetX
-    sy := s.Y-s.OffsetY
-    sw := s.Width
-    sh := s.Height
-    dx := sx
-    dy := sy
-    dw := sw
-    dh := sh
-    df := s.DrawFlags
-    s.Bitmap.DrawScaled(sx,sy,sw,sh,dx,dy,dw,dh,df)
-}
-
-func (s *sprite) DrawRotated() { // TODO / BROKEN
-    cx := s.X-s.OffsetX
-    cy := s.Y-s.OffsetY
-    dx := cx
-    dy := cy
-    da := s.Angle
-    df := s.DrawFlags
-    s.Bitmap.DrawRotated(cx,cy,dx,dy,da,df)
-}
-
-func (s *sprite) Load(name string) {
-    logLvl(SPRITES, "LOADING SPRITE:", name)
-    s.Name = name
-    s.Folder = SPRITEDATA + name
-
-    loadSound := func(sound string) {
-        logLvl(SPRITES|SOUNDS, " = SOUND:", sound)
-        if sample, err := audio.LoadSample(s.Folder+"/snd/"+sound); err != nil {
-            panic(err)
-        } else {
-            s.Sound[sound] = sample
-        }
-    }
-
-    s.Sound = make(map[string]*audio.Sample)
-    if sounds, err := ioutil.ReadDir(s.Folder+"/snd/"); err != nil {
-        logLvl(SPRITES|SOUNDS, " = FAIL:", err)
-    } else {
-        for _, sound := range sounds {
-            loadSound(sound.Name())
-        }
-    }
-
-    if bitmap, err := allegro.LoadBitmap(s.Folder+"/bitmap"); err != nil {
-        logLvl(SPRITES|BITMAPS, " = FAIL:", err)
-    } else {
-        logLvl(SPRITES|BITMAPS, " = BITMAP LOADED")
-        s.Bitmap  = bitmap
-        s.Width   = float32(bitmap.Width())
-        s.Height  = float32(bitmap.Height())
-        s.OffsetY = s.Height/2
-        s.OffsetX = s.Width/2
-        s.ScaleX  = 10.0
-        s.ScaleY  = 10.0
-        s.Draw    = s.DrawNormal
-        s.Spawn   = func(){
-            logLvl(SPRITES, " = SPAWN:", s.Name)
-            s.Play(SPAWN)
-            s.Draw()
-        }
+func (keyMap keyboardMap) Check() {
+    var keyState allegro.KeyboardState
+    keyState.Get()
+    for k, f := range keyMap {
+        if keyState.IsDown(k) { f() }
     }
 }
 
-func (s *sprite) Play(sound string) {
-    logLvl(SPRITES|SOUNDS, " = PLAY:", s.Name, sound)
-
-    instance := audio.CreateSampleInstance(s.Sound[sound])
-    if err := instance.AttachToMixer(audio.DefaultMixer()); err != nil {
-        logLvl(SPRITES|SOUNDS, " = FAIL:", s.Name, sound, err)
-        panic(err)
-    }
-    if err := instance.Play(); err != nil {
-        logLvl(SPRITES|SOUNDS, " = FAIL:", s.Name, sound, err)
-        panic(err)
-    }
+// Game State
+type gameState struct {
+    display  *allegro.Display
+    joyState *allegro.JoystickState
+    joyMap    joystickMap
+    keyMap    keyboardMap
+    sprite  []sprite
 }
 
-func (s *sprite) Unload() { // TODO
-    s.Bitmap.Destroy()
-    s.OffsetX = 0
-    s.OffsetY = 0
-    s.Height  = 0
-    s.Width   = 0
+const (
+    SPRITE_CENTER = 1 << iota
+    SPRITE_SPAWN
+)
+
+func (game *gameState) LoadSprite(name string, flags int) {
+    var s sprite
+    s.Load(name)
+    if flags & SPRITE_CENTER > 0 { s.Center(game.display) }
+    if flags & SPRITE_SPAWN  > 0 { s.Spawn() }
+    game.sprite = append(game.sprite, s)
 }
 
-func (s *sprite) Center(display *allegro.Display) {
-    s.Y = float32(display.Height()/2)
-    s.X = float32(display.Width()/2)
+func (game *gameState) Update() {
+    game.keyMap.Check()
+    game.joyMap.Check(game.joyState)
+    for sprite := range game.sprite { game.sprite[sprite].Update() }
+    for sprite := range game.sprite { game.sprite[sprite].Draw()   }
+    allegro.FlipDisplay()
 }
 
-func configureJoysticks() (joyState *allegro.JoystickState) {
-    logLvl(GENERAL, "CONFIGURING JOYSTICKS")
-    if allegro.ReconfigureJoysticks() { logLvl(GENERAL, " = RECONFIGURED") }
-    if joys := allegro.NumJoysticks(); joys > 0 {
-        for joy := 0; joy < joys; joy++ {
-            if joystick, err := allegro.GetJoystick(joy); err != nil {
-                panic(err)
-            } else {
-                logLvl(GENERAL, " = JOYSTICK:", joy, "=", joystick.Name())
-                joyState = joystick.State()
-            }
-        }
-    }
+func newGameState() (game gameState) {
+    game.keyMap = make(keyboardMap)
+    game.joyMap = make(joystickMap)
     return
 }
 
-/* ///////
-** Logging
-*/ ///////
-func log(                   msg ...interface{}) { if LOGGING          { fmt.Println(msg...)          } }
-func logLvl(lvl DebugLevel, msg ...interface{}) { if lvl & LOGLVL > 0 { log(msg...)                  } }
-func logFunc(                   msg string, function func())          { log(msg);         function() }
-func logLvlFunc(lvl DebugLevel, msg string, function func())          { logLvl(lvl, msg); function() }
-
-////////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 func main() {
     logLvl(GENERAL, "STARTING..."); defer logLvl(GENERAL, "...FINISHED")
     allegro.Run(func() {
         var (
-            display    *allegro.Display
             event       allegro.Event
             eventQueue *allegro.EventQueue
-            joyState   *allegro.JoystickState
-            keyState    allegro.KeyboardState
             timer      *allegro.Timer
             running     bool = LOOPING
             err         error
         )
+
+        game := newGameState()
 
         /* /////////////////
         ** Configure Display
@@ -274,13 +165,13 @@ func main() {
         */ ////////////////
         logLvl(GENERAL, "CREATE DISPLAY")
         allegro.SetNewDisplayFlags(flags)
-        if display, err = allegro.CreateDisplay(WINX,WINY); err != nil {
+        if game.display, err = allegro.CreateDisplay(WINX,WINY); err != nil {
             panic(err)
         } else {
-            defer logLvlFunc(GENERAL, "DESTROY DISPLAY", display.Destroy)
-            display.SetWindowTitle("Game")
-            eventQueue.Register(display)
-            eventQueue.RegisterEventSource(display.EventSource()) // Redundant?
+            defer logLvlFunc(GENERAL, "DESTROY DISPLAY", game.display.Destroy)
+            game.display.SetWindowTitle("Game")
+            eventQueue.Register(game.display)
+            eventQueue.RegisterEventSource(game.display.EventSource()) // Redundant?
         }
 
         /* /////////////////
@@ -292,7 +183,7 @@ func main() {
         } else {
             defer logLvlFunc(GENERAL, "UNINSTALL JOYSTICK", allegro.UninstallJoystick)
             //eventQueue.RegisterEventSource(allegro.JoystickEventSource())
-            joyState = configureJoysticks()
+            game.joyState = configureJoysticks()
         }
         
         /* /////////////////
@@ -337,34 +228,41 @@ func main() {
             timer.Start()
         }
 
-        /* //////////
-        ** Sound Test
-        */ //////////
-        // piano, err := loadSound(PIANO_WAV)
-        // if err != nil { panic(err) }
-        // piano.Play()
-
-
         /* ///////////
         ** Sprite Test
         */ ///////////
-        var background sprite
-        background.Load(BACKGROUND)
-        background.Center(display)
-        background.Spawn()
+        game.LoadSprite(BACKGROUND, SPRITE_CENTER|SPRITE_SPAWN)
+        game.LoadSprite(PLAYER,     SPRITE_CENTER|SPRITE_SPAWN)
+        game.Update()
 
-        var player sprite
-        player.Load(PLAYER)
-        player.Center(display)
-        player.Spawn()
-
-        allegro.FlipDisplay()
-
-        /* ///////// // /////////////////////
-        ** Main Loop // Damn Huge Switch Loop
-        */ ///////// // /////////////////////
-        logLvl(GENERAL, "LOOPING...")
+        /* ///////////
+        ** Define Keys
+        */ ///////////
         quit := func() { logLvl(GENERAL, "QUITING..."); running = false }
+
+        game.keyMap[allegro.KEY_ESCAPE] = quit
+        game.keyMap[allegro.KEY_Q]      = quit
+        game.keyMap[allegro.KEY_UP]     = func(){logLvl(GENERAL, " = UP"   )}
+        game.keyMap[allegro.KEY_DOWN]   = func(){logLvl(GENERAL, " = DOWN" )}
+        game.keyMap[allegro.KEY_LEFT]   = func(){logLvl(GENERAL, " = LEFT" )}
+        game.keyMap[allegro.KEY_RIGHT]  = func(){logLvl(GENERAL, " = RIGHT")}
+
+        game.joyMap[JOY_A]     = func(){logLvl(GENERAL, " = JOY_A"    )}
+        game.joyMap[JOY_B]     = func(){logLvl(GENERAL, " = JOY_B"    )}
+        game.joyMap[JOY_X]     = func(){logLvl(GENERAL, " = JOY_X"    )}
+        game.joyMap[JOY_Y]     = func(){logLvl(GENERAL, " = JOY_Y"    )}
+        game.joyMap[JOY_LB]    = func(){logLvl(GENERAL, " = JOY_LB"   )}
+        game.joyMap[JOY_RB]    = func(){logLvl(GENERAL, " = JOY_RB"   )}
+        game.joyMap[JOY_BACK]  = func(){logLvl(GENERAL, " = JOY_BACK" )}
+        game.joyMap[JOY_START] = func(){logLvl(GENERAL, " = JOY_START")}
+        game.joyMap[JOY_XBOX]  = func(){logLvl(GENERAL, " = JOY_XBOX" )}
+        game.joyMap[JOY_LS]    = func(){logLvl(GENERAL, " = JOY_LS"   )}
+        game.joyMap[JOY_RS]    = func(){logLvl(GENERAL, " = JOY_RS"   )}
+
+        /* ///////// // ///////////
+        ** Main Loop // Switch Loop
+        */ ///////// // ///////////
+        logLvl(GENERAL, "LOOPING...")
         for running { switch e := eventQueue.WaitForEvent(&event); e.(type) {
 
             // Display Events
@@ -373,12 +271,12 @@ func main() {
             case allegro.DisplayFoundEvent:          logLvl(GENERAL, "DisplayFoundEvent"         );
             case allegro.DisplayLostEvent:           logLvl(GENERAL, "DisplayLostEvent"          );
             case allegro.DisplayOrientationEvent:    logLvl(GENERAL, "DisplayOrientationEvent"   );
-            case allegro.DisplayResizeEvent:         logLvl(GENERAL, "DisplayResizeEvent"        ); display.AcknowledgeResize()
+            case allegro.DisplayResizeEvent:         logLvl(GENERAL, "DisplayResizeEvent"        ); game.display.AcknowledgeResize()
             case allegro.DisplaySwitchInEvent:       logLvl(GENERAL, "DisplaySwitchInEvent"      );
             case allegro.DisplaySwitchOutEvent:      logLvl(GENERAL, "DisplaySwitchOutEvent"     );
 
             // Joystick Events
-            case allegro.JoystickConfigurationEvent: logLvl(GENERAL, "JoystickConfigurationEvent"); joyState = configureJoysticks()
+            case allegro.JoystickConfigurationEvent: logLvl(GENERAL, "JoystickConfigurationEvent"); game.joyState = configureJoysticks()
 
             // Mouse Events
             case allegro.MouseAxesEvent:             logLvl(GENERAL, "MouseAxesEvent"            );
@@ -389,79 +287,7 @@ func main() {
             case allegro.MouseWarpedEvent:           logLvl(GENERAL, "MouseWarpedEvent"          );
 
             // Timer Events
-            case allegro.TimerEvent: {            // logLvl(GENERAL, "TimerEvent:", timer.Count())
-
-                // Keyboard State
-                keyState.Get()
-                if keyState.IsDown(allegro.KEY_ESCAPE) { quit() }
-                if keyState.IsDown(allegro.KEY_Q     ) { quit() }
-                if keyState.IsDown(allegro.KEY_P     ) { player.Play(SPAWN) }
-                if keyState.IsDown(allegro.KEY_UP    ) { logLvl(GENERAL, " = UP"   ) }
-                if keyState.IsDown(allegro.KEY_DOWN  ) { logLvl(GENERAL, " = DOWN" ) }
-                if keyState.IsDown(allegro.KEY_LEFT  ) { logLvl(GENERAL, " = LEFT" ) }
-                if keyState.IsDown(allegro.KEY_RIGHT ) { logLvl(GENERAL, " = RIGHT") }
-             
-                // Joystick State
-                if joyState != nil {
-                    joyState.Get()
-
-                    Axis_LX := joyState.Stick[0].Axis[0]
-                    Axis_LY := joyState.Stick[0].Axis[1]
-                    Axis_TL := joyState.Stick[1].Axis[0]
-                    Axis_RX := joyState.Stick[1].Axis[1]
-                    Axis_RY := joyState.Stick[2].Axis[0]
-                    Axis_TR := joyState.Stick[2].Axis[1]
-                    Axis_DX := joyState.Stick[3].Axis[0]
-                    Axis_DY := joyState.Stick[3].Axis[1]
-
-                    Button_A     := joyState.Button[0x0]
-                    Button_B     := joyState.Button[0x1]
-                    Button_X     := joyState.Button[0x2]
-                    Button_Y     := joyState.Button[0x3]
-                    Button_LB    := joyState.Button[0x4]
-                    Button_RB    := joyState.Button[0x5]
-                    Button_BACK  := joyState.Button[0x6]
-                    Button_START := joyState.Button[0x7]
-                    Button_XBOX  := joyState.Button[0x8]
-                    Button_LS    := joyState.Button[0x9]
-                    Button_RS    := joyState.Button[0xA]
-
-                    if Axis_LY < -STICK_THRESHOLD { logLvl(GENERAL, " = L_STICK_UP"   ) }
-                    if Axis_LY >  STICK_THRESHOLD { logLvl(GENERAL, " = L_STICK_DOWN" ) }
-                    if Axis_LX < -STICK_THRESHOLD { logLvl(GENERAL, " = L_STICK_LEFT" ) }
-                    if Axis_LX >  STICK_THRESHOLD { logLvl(GENERAL, " = L_STICK_RIGHT") }
-
-                    if Axis_RY < -STICK_THRESHOLD { logLvl(GENERAL, " = R_STICK_UP"   ) }
-                    if Axis_RY >  STICK_THRESHOLD { logLvl(GENERAL, " = R_STICK_DOWN" ) }
-                    if Axis_RX < -STICK_THRESHOLD { logLvl(GENERAL, " = R_STICK_LEFT" ) }
-                    if Axis_RX >  STICK_THRESHOLD { logLvl(GENERAL, " = R_STICK_RIGHT") }
-
-                    if Axis_DY < -STICK_THRESHOLD { logLvl(GENERAL, " = DIR_PAD_UP"   ) }
-                    if Axis_DY >  STICK_THRESHOLD { logLvl(GENERAL, " = DIR_PAD_DOWN" ) }
-                    if Axis_DX < -STICK_THRESHOLD { logLvl(GENERAL, " = DIR_PAD_LEFT" ) }
-                    if Axis_DX >  STICK_THRESHOLD { logLvl(GENERAL, " = DIR_PAD_RIGHT") }
-
-                    if Axis_TL >  STICK_THRESHOLD { logLvl(GENERAL, " = TRIGGER_LEFT" ) }
-                    if Axis_TR >  STICK_THRESHOLD { logLvl(GENERAL, " = TRIGGER_RIGHT") }
-
-                    if Button_A     > 0 { logLvl(GENERAL, " = JOY_A"    ) }
-                    if Button_B     > 0 { logLvl(GENERAL, " = JOY_B"    ) }
-                    if Button_X     > 0 { logLvl(GENERAL, " = JOY_X"    ) }
-                    if Button_Y     > 0 { logLvl(GENERAL, " = JOY_Y"    ) }
-                    if Button_LB    > 0 { logLvl(GENERAL, " = JOY_LB"   ) }
-                    if Button_RB    > 0 { logLvl(GENERAL, " = JOY_RB"   ) }
-                    if Button_BACK  > 0 { logLvl(GENERAL, " = JOY_BACK" ) }
-                    if Button_START > 0 { logLvl(GENERAL, " = JOY_START") }
-                    if Button_XBOX  > 0 { logLvl(GENERAL, " = JOY_XBOX" ) }
-                    if Button_LS    > 0 { logLvl(GENERAL, " = JOY_LS"   ) }
-                    if Button_RS    > 0 { logLvl(GENERAL, " = JOY_RS"   ) }
-
-                } // Joystick State
-
-                // Display State
-                // allegro.FlipDisplay()
-
-            } // Timer Events
+            case allegro.TimerEvent:                 logLvl(TIMER,   "TimerEvent:", timer.Count()); game.Update()
 
             default:
             }
