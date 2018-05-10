@@ -14,10 +14,13 @@ type DebugLevel int
 
 const (
     GENERAL DebugLevel = 1 << iota
+    SPRITES
+    BITMAPS
+    SOUNDS
 )
 
 const ( // DEBUG
-    LOGLVL  = 0
+    LOGLVL  = SPRITES
     LOGGING = true
     LOOPING = true
 )
@@ -26,7 +29,7 @@ const (
     // JOYSTICK
     STICK_THRESHOLD = 0.5
     // SOUND
-    PIANO_WAV = "dat/snd/piano.wav"
+    SAMPLEMAX = 8
     // DISPLAY
     WINX = 800
     WINY = 600
@@ -66,7 +69,7 @@ func (s *sprite) DrawNormal() {
     s.Bitmap.Draw(dx,dy,df)
 }
 
-func (s *sprite) DrawScaled() {
+func (s *sprite) DrawScaled() { // TODO / BROKEN
     sx := s.X-s.OffsetX
     sy := s.Y-s.OffsetY
     sw := s.Width
@@ -79,7 +82,7 @@ func (s *sprite) DrawScaled() {
     s.Bitmap.DrawScaled(sx,sy,sw,sh,dx,dy,dw,dh,df)
 }
 
-func (s *sprite) DrawRotated() {
+func (s *sprite) DrawRotated() { // TODO / BROKEN
     cx := s.X-s.OffsetX
     cy := s.Y-s.OffsetY
     dx := cx
@@ -89,13 +92,13 @@ func (s *sprite) DrawRotated() {
     s.Bitmap.DrawRotated(cx,cy,dx,dy,da,df)
 }
 
-//func (s *sprite) Draw() { s.Bitmap.DrawScaledRotated(s.OffsetX,s.OffsetY,s.X,s.Y,s.ScaleX,s.ScaleY,s.Angle,s.DrawFlags) }
-
 func (s *sprite) Load(name string) {
+    logLvl(SPRITES, "LOADING SPRITE:", name)
     s.Name = name
     s.Folder = SPRITEDATA + name
 
     loadSound := func(sound string) {
+        logLvl(SPRITES|SOUNDS, " = SOUND:", sound)
         if sample, err := audio.LoadSample(s.Folder+"/snd/"+sound); err != nil {
             panic(err)
         } else {
@@ -105,17 +108,17 @@ func (s *sprite) Load(name string) {
 
     s.Sound = make(map[string]*audio.Sample)
     if sounds, err := ioutil.ReadDir(s.Folder+"/snd/"); err != nil {
-        log(err)
+        logLvl(SPRITES|SOUNDS, " = FAIL:", err)
     } else {
         for _, sound := range sounds {
-            log(sound.Name())
             loadSound(sound.Name())
         }
     }
 
     if bitmap, err := allegro.LoadBitmap(s.Folder+"/bitmap"); err != nil {
-        panic(err)
+        logLvl(SPRITES|BITMAPS, " = FAIL:", err)
     } else {
+        logLvl(SPRITES|BITMAPS, " = BITMAP LOADED")
         s.Bitmap  = bitmap
         s.Width   = float32(bitmap.Width())
         s.Height  = float32(bitmap.Height())
@@ -125,6 +128,7 @@ func (s *sprite) Load(name string) {
         s.ScaleY  = 10.0
         s.Draw    = s.DrawNormal
         s.Spawn   = func(){
+            logLvl(SPRITES, " = SPAWN:", s.Name)
             s.Play(SPAWN)
             s.Draw()
         }
@@ -132,16 +136,20 @@ func (s *sprite) Load(name string) {
 }
 
 func (s *sprite) Play(sound string) {
+    logLvl(SPRITES|SOUNDS, " = PLAY:", s.Name, sound)
+
     instance := audio.CreateSampleInstance(s.Sound[sound])
     if err := instance.AttachToMixer(audio.DefaultMixer()); err != nil {
+        logLvl(SPRITES|SOUNDS, " = FAIL:", s.Name, sound, err)
         panic(err)
     }
     if err := instance.Play(); err != nil {
+        logLvl(SPRITES|SOUNDS, " = FAIL:", s.Name, sound, err)
         panic(err)
     }
 }
 
-func (s *sprite) Unload() {
+func (s *sprite) Unload() { // TODO
     s.Bitmap.Destroy()
     s.OffsetX = 0
     s.OffsetY = 0
@@ -174,7 +182,7 @@ func configureJoysticks() (joyState *allegro.JoystickState) {
 ** Logging
 */ ///////
 func log(                   msg ...interface{}) { if LOGGING          { fmt.Println(msg...)          } }
-func logLvl(lvl DebugLevel, msg ...interface{}) { if lvl & LOGLVL > 0 { log(msg)                     } }
+func logLvl(lvl DebugLevel, msg ...interface{}) { if lvl & LOGLVL > 0 { log(msg...)                  } }
 func logFunc(                   msg string, function func())          { log(msg);         function() }
 func logLvlFunc(lvl DebugLevel, msg string, function func())          { logLvl(lvl, msg); function() }
 
@@ -244,7 +252,7 @@ func main() {
             panic(err)
         } else {
             defer logLvlFunc(GENERAL, "UNINSTALL AUDIO AND AUDIO CODEC", audio.Uninstall)
-            audio.ReserveSamples(8)
+            audio.ReserveSamples(SAMPLEMAX)
             logLvl(GENERAL, "INSTALL AUDIO CODEC")
             if err = acodec.Install(); err != nil {
                 panic(err)
@@ -351,9 +359,6 @@ func main() {
         player.Spawn()
 
         allegro.FlipDisplay()
-        background.Draw()
-        player.Draw()
-        allegro.FlipDisplay()
 
         /* ///////// // /////////////////////
         ** Main Loop // Damn Huge Switch Loop
@@ -451,14 +456,10 @@ func main() {
                     if Button_LS    > 0 { logLvl(GENERAL, " = JOY_LS"   ) }
                     if Button_RS    > 0 { logLvl(GENERAL, " = JOY_RS"   ) }
 
-                    //player.ScaleX =  1 // Axis_RX
-                    //player.ScaleY =  1 // Axis_RY
-                    player.Draw()
-
                 } // Joystick State
 
                 // Display State
-                allegro.FlipDisplay()
+                // allegro.FlipDisplay()
 
             } // Timer Events
 
