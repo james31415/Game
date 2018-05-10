@@ -7,8 +7,7 @@ import (
 )
 
 const (
-    SPRITEDATA = "dat/sprites/"
-    SPAWN      = "spawn.wav"
+    SPAWN  = "spawn.wav"
 )
 
 const (
@@ -95,7 +94,7 @@ func (s *sprite) Center(display *allegro.Display) {
 func (s *sprite) Load(name string) {
     LogLvl(LOG_SPRITES, "LOADING SPRITE:", name)
     s.Name = name
-    s.Folder = SPRITEDATA + name
+    s.Folder = "dat/sprites/" + name
 
     loadSound := func(sound string) {
         LogLvl(LOG_SPRITES|LOG_SOUNDS, " = SOUND:", sound)

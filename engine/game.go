@@ -18,6 +18,8 @@ const (
     FPS  = 60
 )
 
+var Start = allegro.Run
+
 // Game State
 type gameState struct {
     Timer    *allegro.Timer
@@ -47,17 +49,19 @@ func (game *gameState) Update() {
 }
 
 func (game *gameState) Destroy() {
-    LogLvlFunc(LOG_GENERAL, "DESTROY TIMER", game.Timer.Destroy)
-    LogLvlFunc(LOG_GENERAL, "UNINSTALL MOUSE", allegro.UninstallMouse)
-    LogLvlFunc(LOG_GENERAL, "UNINSTALL KEYBOARD", allegro.UninstallKeyboard)
-    LogLvlFunc(LOG_GENERAL, "UNINSTALL JOYSTICK", allegro.UninstallJoystick)
-    LogLvlFunc(LOG_GENERAL, "DESTROY DISPLAY", game.Display.Destroy)
-    LogLvlFunc(LOG_GENERAL, "DESTROY EVENT QUEUE", game.Events.Destroy)
+    LogLvlFunc(LOG_GENERAL, "DESTROY TIMER",                   game.Timer.Destroy)
+    LogLvlFunc(LOG_GENERAL, "UNINSTALL MOUSE",                 allegro.UninstallMouse)
+    LogLvlFunc(LOG_GENERAL, "UNINSTALL KEYBOARD",              allegro.UninstallKeyboard)
+    LogLvlFunc(LOG_GENERAL, "UNINSTALL JOYSTICK",              allegro.UninstallJoystick)
+    LogLvlFunc(LOG_GENERAL, "DESTROY DISPLAY",                 game.Display.Destroy)
+    LogLvlFunc(LOG_GENERAL, "DESTROY EVENT QUEUE",             game.Events.Destroy)
     LogLvlFunc(LOG_GENERAL, "UNINSTALL AUDIO AND AUDIO CODEC", audio.Uninstall)
-    LogLvlFunc(LOG_GENERAL, "UNINSTALL IMAGE", image.Uninstall)
+    LogLvlFunc(LOG_GENERAL, "UNINSTALL IMAGE",                 image.Uninstall)
+    LogLvl(    LOG_GENERAL, "...FINISHED")
 }
 
 func NewGameState() (game gameState) {
+    LogLvl(LOG_GENERAL, "STARTING...")
     var err error
     game.KeyMap = make(keyboardMap)
     game.JoyMap = make(joystickMap)
@@ -150,5 +154,42 @@ func NewGameState() (game gameState) {
     }
 
     return
+}
+
+func (game *gameState) Quit() { LogLvl(LOG_GENERAL, "QUITING..."); game.Running = false }
+
+func (game *gameState) Loop() {
+    LogLvl(LOG_GENERAL, "LOOPING...")
+    game.Running = LOOPING
+    var event allegro.Event
+    for game.Running { switch e := game.Events.WaitForEvent(&event); e.(type) {
+
+        // Display Events
+        case allegro.DisplayCloseEvent:          LogLvl(LOG_EVENTS, "DisplayCloseEvent"              ); game.Quit()
+        case allegro.DisplayExposeEvent:         LogLvl(LOG_EVENTS, "DisplayExposeEvent"             ); allegro.FlipDisplay()
+        case allegro.DisplayFoundEvent:          LogLvl(LOG_EVENTS, "DisplayFoundEvent"              );
+        case allegro.DisplayLostEvent:           LogLvl(LOG_EVENTS, "DisplayLostEvent"               );
+        case allegro.DisplayOrientationEvent:    LogLvl(LOG_EVENTS, "DisplayOrientationEvent"        );
+        case allegro.DisplayResizeEvent:         LogLvl(LOG_EVENTS, "DisplayResizeEvent"             ); game.Display.AcknowledgeResize()
+        case allegro.DisplaySwitchInEvent:       LogLvl(LOG_EVENTS, "DisplaySwitchInEvent"           );
+        case allegro.DisplaySwitchOutEvent:      LogLvl(LOG_EVENTS, "DisplaySwitchOutEvent"          );
+
+        // Joystick Events
+        case allegro.JoystickConfigurationEvent: LogLvl(LOG_EVENTS, "JoystickConfigurationEvent"     ); game.JoyState = ConfigureJoysticks()
+
+        // Mouse Events
+        case allegro.MouseAxesEvent:             LogLvl(LOG_EVENTS, "MouseAxesEvent"                 );
+        case allegro.MouseButtonDownEvent:       LogLvl(LOG_EVENTS, "MouseButtonDownEvent"           );
+        case allegro.MouseButtonUpEvent:         LogLvl(LOG_EVENTS, "MouseButtonUpEvent"             );
+        case allegro.MouseEnterDisplayEvent:     LogLvl(LOG_EVENTS, "MouseEnterDisplayEvent"         ); game.Timer.Start() // Pauses when mouse
+        case allegro.MouseLeaveDisplayEvent:     LogLvl(LOG_EVENTS, "MouseLeaveDisplayEvent"         ); game.Timer.Stop()  // leaves the window
+        case allegro.MouseWarpedEvent:           LogLvl(LOG_EVENTS, "MouseWarpedEvent"               );
+
+        // Timer Events
+        case allegro.TimerEvent:                 LogLvl(LOG_TIMER,   "TimerEvent:", game.Timer.Count()); game.Update()
+
+        default:
+        }
+    }
 }
 

@@ -16,7 +16,7 @@ const (
 )
 
 const (
-    LOGLVL  = LOG_EVENTS
+    LOGLVL  = LOG_GENERAL
     LOGGING = true
     LOOPING = true
 )
