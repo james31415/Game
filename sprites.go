@@ -14,6 +14,11 @@ const (
     SPAWN      = "spawn.wav"
 )
 
+const (
+    SPRITE_CENTER = 1 << iota
+    SPRITE_SPAWN
+)
+
 type sprite struct {
     Name       string
     Folder     string

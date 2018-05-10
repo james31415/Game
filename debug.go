@@ -15,7 +15,7 @@ const (
 )
 
 const ( // DEBUG
-    LOGLVL  = SPRITES
+    LOGLVL  = GENERAL
     LOGGING = true
     LOOPING = true
 )

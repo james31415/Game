@@ -22,6 +22,16 @@ const (
     JOY_RS
 )
 
+type keyboardMap map[allegro.KeyCode]func()
+
+func (keyMap keyboardMap) Check() {
+    var keyState allegro.KeyboardState
+    keyState.Get()
+    for k, f := range keyMap {
+        if keyState.IsDown(k) { f() }
+    }
+}
+
 type joystickMap map[int]func()
 
 func (joyMap joystickMap) Check(joyState *allegro.JoystickState) {
