@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
     "io/ioutil"
@@ -7,10 +7,7 @@ import (
 )
 
 const (
-    // SPRITES
     SPRITEDATA = "dat/sprites/"
-    BACKGROUND = "background"
-    PLAYER     = "player"
     SPAWN      = "spawn.wav"
 )
 
@@ -69,15 +66,15 @@ func (s *sprite) DrawRotated() { // TODO / BROKEN
 }
 
 func (s *sprite) Play(sound string) {
-    logLvl(SPRITES|SOUNDS, " = PLAY:", s.Name, sound)
+    LogLvl(LOG_SPRITES|LOG_SOUNDS, " = PLAY:", s.Name, sound)
 
     instance := audio.CreateSampleInstance(s.Sound[sound])
     if err := instance.AttachToMixer(audio.DefaultMixer()); err != nil {
-        logLvl(SPRITES|SOUNDS, " = FAIL:", s.Name, sound, err)
+        LogLvl(LOG_SPRITES|LOG_SOUNDS, " = FAIL:", s.Name, sound, err)
         panic(err)
     }
     if err := instance.Play(); err != nil {
-        logLvl(SPRITES|SOUNDS, " = FAIL:", s.Name, sound, err)
+        LogLvl(LOG_SPRITES|LOG_SOUNDS, " = FAIL:", s.Name, sound, err)
         panic(err)
     }
 }
@@ -96,12 +93,12 @@ func (s *sprite) Center(display *allegro.Display) {
 }
 
 func (s *sprite) Load(name string) {
-    logLvl(SPRITES, "LOADING SPRITE:", name)
+    LogLvl(LOG_SPRITES, "LOADING SPRITE:", name)
     s.Name = name
     s.Folder = SPRITEDATA + name
 
     loadSound := func(sound string) {
-        logLvl(SPRITES|SOUNDS, " = SOUND:", sound)
+        LogLvl(LOG_SPRITES|LOG_SOUNDS, " = SOUND:", sound)
         if sample, err := audio.LoadSample(s.Folder+"/snd/"+sound); err != nil {
             panic(err)
         } else {
@@ -111,7 +108,7 @@ func (s *sprite) Load(name string) {
 
     s.Sound = make(map[string]*audio.Sample)
     if sounds, err := ioutil.ReadDir(s.Folder+"/snd/"); err != nil {
-        logLvl(SPRITES|SOUNDS, " = FAIL:", err)
+        LogLvl(LOG_SPRITES|LOG_SOUNDS, " = FAIL:", err)
     } else {
         for _, sound := range sounds {
             loadSound(sound.Name())
@@ -119,9 +116,9 @@ func (s *sprite) Load(name string) {
     }
 
     if bitmap, err := allegro.LoadBitmap(s.Folder+"/bitmap"); err != nil {
-        logLvl(SPRITES|BITMAPS, " = FAIL:", err)
+        LogLvl(LOG_SPRITES|LOG_BITMAPS, " = FAIL:", err)
     } else {
-        logLvl(SPRITES|BITMAPS, " = BITMAP LOADED")
+        LogLvl(LOG_SPRITES|LOG_BITMAPS, " = BITMAP LOADED")
         s.Bitmap  = bitmap
         s.Width   = float32(bitmap.Width())
         s.Height  = float32(bitmap.Height())
@@ -131,7 +128,7 @@ func (s *sprite) Load(name string) {
         s.ScaleY  = 10.0
         s.Draw    = s.DrawNormal
         s.Spawn   = func(){
-            logLvl(SPRITES, " = SPAWN:", s.Name)
+            LogLvl(LOG_SPRITES, " = SPAWN:", s.Name)
             s.Play(SPAWN)
             s.Draw()
         }

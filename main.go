@@ -1,8 +1,14 @@
 package main
 
 import (
+    "github.com/james31415/Game/engine"
     "github.com/dradtke/go-allegro/allegro"
     //"github.com/yuin/gopher-lua"
+)
+
+const (
+    BACKGROUND = "background"
+    PLAYER     = "player"
 )
 
 /* /////////////////////////////////////////////////////////////////////////////
@@ -20,73 +26,73 @@ import (
 
 // /////////////////////////////////////////////////////////////////////////
 func main() {
-    logLvl(GENERAL, "STARTING..."); defer logLvl(GENERAL, "...FINISHED")
+    engine.LogLvl(engine.LOG_GENERAL, "STARTING..."); defer engine.LogLvl(engine.LOG_GENERAL, "...FINISHED")
     allegro.Run(func() {
         var event allegro.Event
 
-        game := newGameState(); defer game.Destroy()
+        game := engine.NewGameState(); defer game.Destroy()
 
         /* ///////////
         ** Sprite Test
         */ ///////////
-        game.LoadSprite(BACKGROUND, SPRITE_CENTER|SPRITE_SPAWN)
-        game.LoadSprite(PLAYER,     SPRITE_CENTER|SPRITE_SPAWN)
+        game.LoadSprite(BACKGROUND, engine.SPRITE_CENTER|engine.SPRITE_SPAWN)
+        game.LoadSprite(PLAYER,     engine.SPRITE_CENTER|engine.SPRITE_SPAWN)
         game.Update()
 
         /* ///////////
         ** Define Keys
         */ ///////////
-        quit := func() { logLvl(GENERAL, "QUITING..."); game.running = false }
+        quit := func() { engine.LogLvl(engine.LOG_GENERAL, "QUITING..."); game.Running = false }
 
-        game.keyMap[allegro.KEY_ESCAPE] = quit
-        game.keyMap[allegro.KEY_Q]      = quit
-        game.keyMap[allegro.KEY_UP]     = func(){logLvl(GENERAL, " = UP"   )}
-        game.keyMap[allegro.KEY_DOWN]   = func(){logLvl(GENERAL, " = DOWN" )}
-        game.keyMap[allegro.KEY_LEFT]   = func(){logLvl(GENERAL, " = LEFT" )}
-        game.keyMap[allegro.KEY_RIGHT]  = func(){logLvl(GENERAL, " = RIGHT")}
+        game.KeyMap[allegro.KEY_ESCAPE] = quit
+        game.KeyMap[allegro.KEY_Q]      = quit
+        game.KeyMap[allegro.KEY_UP]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = UP"   )}
+        game.KeyMap[allegro.KEY_DOWN]   = func(){engine.LogLvl(engine.LOG_GENERAL, " = DOWN" )}
+        game.KeyMap[allegro.KEY_LEFT]   = func(){engine.LogLvl(engine.LOG_GENERAL, " = LEFT" )}
+        game.KeyMap[allegro.KEY_RIGHT]  = func(){engine.LogLvl(engine.LOG_GENERAL, " = RIGHT")}
 
-        game.joyMap[JOY_A]     = func(){logLvl(GENERAL, " = JOY_A"    )}
-        game.joyMap[JOY_B]     = func(){logLvl(GENERAL, " = JOY_B"    )}
-        game.joyMap[JOY_X]     = func(){logLvl(GENERAL, " = JOY_X"    )}
-        game.joyMap[JOY_Y]     = func(){logLvl(GENERAL, " = JOY_Y"    )}
-        game.joyMap[JOY_LB]    = func(){logLvl(GENERAL, " = JOY_LB"   )}
-        game.joyMap[JOY_RB]    = func(){logLvl(GENERAL, " = JOY_RB"   )}
-        game.joyMap[JOY_BACK]  = func(){logLvl(GENERAL, " = JOY_BACK" )}
-        game.joyMap[JOY_START] = func(){logLvl(GENERAL, " = JOY_START")}
-        game.joyMap[JOY_XBOX]  = func(){logLvl(GENERAL, " = JOY_XBOX" )}
-        game.joyMap[JOY_LS]    = func(){logLvl(GENERAL, " = JOY_LS"   )}
-        game.joyMap[JOY_RS]    = func(){logLvl(GENERAL, " = JOY_RS"   )}
+        game.JoyMap[engine.JOY_A]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_A"    )}
+        game.JoyMap[engine.JOY_B]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_B"    )}
+        game.JoyMap[engine.JOY_X]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_X"    )}
+        game.JoyMap[engine.JOY_Y]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_Y"    )}
+        game.JoyMap[engine.JOY_LB]    = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_LB"   )}
+        game.JoyMap[engine.JOY_RB]    = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_RB"   )}
+        game.JoyMap[engine.JOY_BACK]  = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_BACK" )}
+        game.JoyMap[engine.JOY_START] = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_START")}
+        game.JoyMap[engine.JOY_XBOX]  = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_XBOX" )}
+        game.JoyMap[engine.JOY_LS]    = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_LS"   )}
+        game.JoyMap[engine.JOY_RS]    = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_RS"   )}
 
         /* ///////// // ///////////
         ** Main Loop // Switch Loop
         */ ///////// // ///////////
-        logLvl(GENERAL, "LOOPING...")
-        game.running = LOOPING
-        for game.running { switch e := game.events.WaitForEvent(&event); e.(type) {
+        engine.LogLvl(engine.LOG_GENERAL, "LOOPING...")
+        game.Running = engine.LOOPING
+        for game.Running { switch e := game.Events.WaitForEvent(&event); e.(type) {
 
             // Display Events
-            case allegro.DisplayCloseEvent:          logLvl(GENERAL, "DisplayCloseEvent"         ); quit()
-            case allegro.DisplayExposeEvent:         logLvl(GENERAL, "DisplayExposeEvent"        ); allegro.FlipDisplay()
-            case allegro.DisplayFoundEvent:          logLvl(GENERAL, "DisplayFoundEvent"         );
-            case allegro.DisplayLostEvent:           logLvl(GENERAL, "DisplayLostEvent"          );
-            case allegro.DisplayOrientationEvent:    logLvl(GENERAL, "DisplayOrientationEvent"   );
-            case allegro.DisplayResizeEvent:         logLvl(GENERAL, "DisplayResizeEvent"        ); game.display.AcknowledgeResize()
-            case allegro.DisplaySwitchInEvent:       logLvl(GENERAL, "DisplaySwitchInEvent"      );
-            case allegro.DisplaySwitchOutEvent:      logLvl(GENERAL, "DisplaySwitchOutEvent"     );
+            case allegro.DisplayCloseEvent:          engine.LogLvl(engine.LOG_EVENTS, "DisplayCloseEvent"              ); quit()
+            case allegro.DisplayExposeEvent:         engine.LogLvl(engine.LOG_EVENTS, "DisplayExposeEvent"             ); allegro.FlipDisplay()
+            case allegro.DisplayFoundEvent:          engine.LogLvl(engine.LOG_EVENTS, "DisplayFoundEvent"              );
+            case allegro.DisplayLostEvent:           engine.LogLvl(engine.LOG_EVENTS, "DisplayLostEvent"               );
+            case allegro.DisplayOrientationEvent:    engine.LogLvl(engine.LOG_EVENTS, "DisplayOrientationEvent"        );
+            case allegro.DisplayResizeEvent:         engine.LogLvl(engine.LOG_EVENTS, "DisplayResizeEvent"             ); game.Display.AcknowledgeResize()
+            case allegro.DisplaySwitchInEvent:       engine.LogLvl(engine.LOG_EVENTS, "DisplaySwitchInEvent"           );
+            case allegro.DisplaySwitchOutEvent:      engine.LogLvl(engine.LOG_EVENTS, "DisplaySwitchOutEvent"          );
 
             // Joystick Events
-            case allegro.JoystickConfigurationEvent: logLvl(GENERAL, "JoystickConfigurationEvent"); game.joyState = configureJoysticks()
+            case allegro.JoystickConfigurationEvent: engine.LogLvl(engine.LOG_EVENTS, "JoystickConfigurationEvent"     ); game.JoyState = engine.ConfigureJoysticks()
 
             // Mouse Events
-            case allegro.MouseAxesEvent:             logLvl(GENERAL, "MouseAxesEvent"            );
-            case allegro.MouseButtonDownEvent:       logLvl(GENERAL, "MouseButtonDownEvent"      );
-            case allegro.MouseButtonUpEvent:         logLvl(GENERAL, "MouseButtonUpEvent"        );
-            case allegro.MouseEnterDisplayEvent:     logLvl(GENERAL, "MouseEnterDisplayEvent"    ); game.timer.Start() // Pauses when mouse
-            case allegro.MouseLeaveDisplayEvent:     logLvl(GENERAL, "MouseLeaveDisplayEvent"    ); game.timer.Stop()  // leaves the window
-            case allegro.MouseWarpedEvent:           logLvl(GENERAL, "MouseWarpedEvent"          );
+            case allegro.MouseAxesEvent:             engine.LogLvl(engine.LOG_EVENTS, "MouseAxesEvent"                 );
+            case allegro.MouseButtonDownEvent:       engine.LogLvl(engine.LOG_EVENTS, "MouseButtonDownEvent"           );
+            case allegro.MouseButtonUpEvent:         engine.LogLvl(engine.LOG_EVENTS, "MouseButtonUpEvent"             );
+            case allegro.MouseEnterDisplayEvent:     engine.LogLvl(engine.LOG_EVENTS, "MouseEnterDisplayEvent"         ); game.Timer.Start() // Pauses when mouse
+            case allegro.MouseLeaveDisplayEvent:     engine.LogLvl(engine.LOG_EVENTS, "MouseLeaveDisplayEvent"         ); game.Timer.Stop()  // leaves the window
+            case allegro.MouseWarpedEvent:           engine.LogLvl(engine.LOG_EVENTS, "MouseWarpedEvent"               );
 
             // Timer Events
-            case allegro.TimerEvent:                 logLvl(TIMER,   "TimerEvent:", game.timer.Count()); game.Update()
+            case allegro.TimerEvent:                 engine.LogLvl(engine.LOG_TIMER,   "TimerEvent:", game.Timer.Count()); game.Update()
 
             default:
             }
