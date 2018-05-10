@@ -11,14 +11,24 @@ const (
 )
 
 const (
-    SPRITE_CENTER = 1 << iota
-    SPRITE_SPAWN
+    SPRITE_NOCENTER = 1 << iota
+    SPRITE_NOSPAWN
 )
+
+const (
+    FLIP_N = allegro.FLIP_NONE
+    FLIP_X = allegro.FLIP_HORIZONTAL
+    FLIP_Y = allegro.FLIP_VERTICAL
+)
+
+type SpriteMap map[string]*sprite
+
+type SoundMap  map[string]*audio.Sample
 
 type sprite struct {
     Name       string
     Folder     string
-    Sound      map[string]*audio.Sample
+    Sound      SoundMap
     Bitmap    *allegro.Bitmap
     DrawFlags  allegro.DrawFlags
     OffsetX    float32
@@ -105,7 +115,7 @@ func (s *sprite) Load(name string) {
         }
     }
 
-    s.Sound = make(map[string]*audio.Sample)
+    s.Sound = make(SoundMap)
     if sounds, err := ioutil.ReadDir(s.Folder+"/snd/"); err != nil {
         LogLvl(LOG_SPRITES|LOG_SOUNDS, " = FAIL:", err)
     } else {

@@ -26,25 +26,36 @@ type gameState struct {
     Display  *allegro.Display
     Events   *allegro.EventQueue
     JoyState *allegro.JoystickState
-    JoyMap    joystickMap
-    KeyMap    keyboardMap
-    Sprites []sprite
+    JoyMap    JoystickMap
+    KeyMap    KeyboardMap
+    Sprite []*sprite
     Running   bool
 }
 
 func (game *gameState) LoadSprite(name string, flags int) {
     var s sprite
     s.Load(name)
-    if flags & SPRITE_CENTER > 0 { s.Center(game.Display) }
-    if flags & SPRITE_SPAWN  > 0 { s.Spawn() }
-    game.Sprites = append(game.Sprites, s)
+    if flags & SPRITE_NOCENTER == 0 { s.Center(game.Display) }
+    if flags & SPRITE_NOSPAWN  == 0 { s.Spawn() }
+    game.Sprite = append(game.Sprite, &s)
+}
+
+func (game *gameState) GetSprite(name string) (*sprite) {
+    for _, sprite := range game.Sprite {
+        if sprite.Name == name {
+            return sprite
+        }
+    }
+    return nil
 }
 
 func (game *gameState) Update() {
     game.KeyMap.Check()
     game.JoyMap.Check(game.JoyState)
-    for Sprites := range game.Sprites { game.Sprites[Sprites].Update() }
-    for Sprites := range game.Sprites { game.Sprites[Sprites].Draw()   }
+    for _, sprite := range game.Sprite {
+        sprite.Update()
+        sprite.Draw()
+    }
     allegro.FlipDisplay()
 }
 
@@ -63,8 +74,8 @@ func (game *gameState) Destroy() {
 func NewGameState() (game gameState) {
     LogLvl(LOG_GENERAL, "STARTING...")
     var err error
-    game.KeyMap = make(keyboardMap)
-    game.JoyMap = make(joystickMap)
+    game.KeyMap = make(KeyboardMap)
+    game.JoyMap = make(JoystickMap)
 
     LogLvl(LOG_GENERAL, "CONFIG DISPLAY")
     var flags allegro.DisplayFlags = 0

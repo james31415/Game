@@ -25,38 +25,47 @@ const (
 
 // /////////////////////////////////////////////////////////////////////////
 func main() {engine.Start(func(){
+
     game := engine.NewGameState(); defer game.Destroy()
 
     /* ///////////
     ** Sprite Test
     */ ///////////
-    game.LoadSprite(BACKGROUND, engine.SPRITE_CENTER|engine.SPRITE_SPAWN)
-    game.LoadSprite(PLAYER,     engine.SPRITE_CENTER|engine.SPRITE_SPAWN)
+    game.LoadSprite(BACKGROUND,0)
+    game.LoadSprite(PLAYER,0)
     game.Update()
 
     /* ///////////
     ** Define Keys
     */ ///////////
 
-    game.KeyMap[engine.KEY_ESCAPE] = func(){game.Quit()}
-    game.KeyMap[engine.KEY_Q]      = func(){game.Quit()}
-    game.KeyMap[engine.KEY_UP]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = UP"       )}
-    game.KeyMap[engine.KEY_DOWN]   = func(){engine.LogLvl(engine.LOG_GENERAL, " = DOWN"     )}
-    game.KeyMap[engine.KEY_LEFT]   = func(){engine.LogLvl(engine.LOG_GENERAL, " = LEFT"     )}
-    game.KeyMap[engine.KEY_RIGHT]  = func(){engine.LogLvl(engine.LOG_GENERAL, " = RIGHT"    )}
+    game.KeyMap = engine.KeyboardMap {
+        engine.KEY_ESCAPE: func(){game.Quit()},
+        engine.KEY_Q:      func(){game.Quit()},
+        engine.KEY_P:      func(){game.GetSprite(PLAYER).Play(engine.SPAWN)},
+        engine.KEY_X:      func(){game.GetSprite(PLAYER).DrawFlags ^= engine.FLIP_X},
+        engine.KEY_Y:      func(){game.GetSprite(PLAYER).DrawFlags ^= engine.FLIP_Y},
+        engine.KEY_UP:     func(){engine.LogLvl(engine.LOG_GENERAL, " = UP"       )},
+        engine.KEY_DOWN:   func(){engine.LogLvl(engine.LOG_GENERAL, " = DOWN"     )},
+        engine.KEY_LEFT:   func(){engine.LogLvl(engine.LOG_GENERAL, " = LEFT"     )},
+        engine.KEY_RIGHT:  func(){engine.LogLvl(engine.LOG_GENERAL, " = RIGHT"    )},
+    }
 
-    game.JoyMap[engine.JOY_A]      = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_A"    )}
-    game.JoyMap[engine.JOY_B]      = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_B"    )}
-    game.JoyMap[engine.JOY_X]      = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_X"    )}
-    game.JoyMap[engine.JOY_Y]      = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_Y"    )}
-    game.JoyMap[engine.JOY_LB]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_LB"   )}
-    game.JoyMap[engine.JOY_RB]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_RB"   )}
-    game.JoyMap[engine.JOY_BACK]   = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_BACK" )}
-    game.JoyMap[engine.JOY_START]  = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_START")}
-    game.JoyMap[engine.JOY_XBOX]   = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_XBOX" )}
-    game.JoyMap[engine.JOY_LS]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_LS"   )}
-    game.JoyMap[engine.JOY_RS]     = func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_RS"   )}
+    game.JoyMap = engine.JoystickMap {
+        engine.JOY_A:      func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_A"    )},
+        engine.JOY_B:      func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_B"    )},
+        engine.JOY_X:      func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_X"    )},
+        engine.JOY_Y:      func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_Y"    )},
+        engine.JOY_LB:     func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_LB"   )},
+        engine.JOY_RB:     func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_RB"   )},
+        engine.JOY_BACK:   func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_BACK" )},
+        engine.JOY_START:  func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_START")},
+        engine.JOY_XBOX:   func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_XBOX" )},
+        engine.JOY_LS:     func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_LS"   )},
+        engine.JOY_RS:     func(){engine.LogLvl(engine.LOG_GENERAL, " = JOY_RS"   )},
+    }
 
     game.Loop()
+
 })}
 

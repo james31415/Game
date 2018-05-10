@@ -162,9 +162,9 @@ const (
     KEYMOD_ACCENT4                   = allegro.KEYMOD_ACCENT4
 )
 
-type keyboardMap map[allegro.KeyCode]func()
+type KeyboardMap map[allegro.KeyCode]func()
 
-func (keyMap keyboardMap) Check() {
+func (keyMap KeyboardMap) Check() {
     var keyState allegro.KeyboardState
     keyState.Get()
     for k, f := range keyMap {
@@ -172,9 +172,9 @@ func (keyMap keyboardMap) Check() {
     }
 }
 
-type joystickMap map[int]func()
+type JoystickMap map[int]func()
 
-func (joyMap joystickMap) Check(joyState *allegro.JoystickState) {
+func (joyMap JoystickMap) Check(joyState *allegro.JoystickState) {
     if joyState == nil { return }
     joyState.Get()
     for b, f := range joyMap {
